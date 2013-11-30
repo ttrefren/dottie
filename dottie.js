@@ -87,7 +87,10 @@
             canvas.height = height;
 
             var context = canvas.getContext('2d');
-            var grid_size = this.model.get('grid_size');
+            context.clearRect(0, 0, width, height);
+
+            var grid_size = this.model.get('grid_size'),
+                dot_size = this.model.get('dot_size');
 
             for (var y = 0; y < height; y += grid_size) {
                 for (var x = 0; x < width; x += grid_size) {
@@ -95,12 +98,7 @@
                     var cmap = MMCQ.quantize(px, 5);
                     var palette = cmap.palette();
                     context.fillStyle = "rgb(" + palette[0].join(",") + ")";
-                    if (x == 0) {
-                        console.log(px);
-                        console.log(palette);
-                        console.log(context.fillStyle);
-                    }
-                    context.fillRect(x, y, x + grid_size, y + grid_size);
+                    context.fillRect(x, y, dot_size, dot_size);
                 }
             }
         }
