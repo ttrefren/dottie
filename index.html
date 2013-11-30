@@ -1,19 +1,34 @@
 <html>
     <head>
+        <title>dottie</title>
+        <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
+        <link rel="stylesheet" href="dottie.css">
     </head>
     <body>
         <div id="container">
             <h1>Dottie</h1>
-            <div id="input">
-                <input type="file" id="file_input">
+            <div id="input_container">
+                <table>
+                    <tr>
+                        <td>File</td><td><input type="file" id="file_input"></td>
+                    </tr>
+                    <tr>
+                        <td>Dot size</td><td><select id="dot_size"></select></td>
+                    </tr>
+                    <tr>
+                        <td>Grid size</td><td><select id="grid_size"></select></td>
+                    </tr>
+                </table>
+                <img id="preview" />
             </div>
-            <div id="output"></div>
+            <div id="output_container">
+                <canvas id="output"></canvas>
+            </div>
         </div>
     </body>
     <script src="libs/quantize.js"></script>
     <script src="libs/underscore.js"></script>
     <script src="libs/backbone.js"></script>
-    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
     <script src="dottie.js"></script>
     <script>
         $(document).ready(function() {

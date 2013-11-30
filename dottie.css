@@ -1,0 +1,22 @@
+#input_container {
+    width: 200px;
+    float: left;
+}
+
+#input_container table td {
+    white-space: nowrap;
+}
+
+#preview {
+    margin-top: 15px;
+    width: 200px;
+}
+
+#output_container {
+    float: left;
+    margin-left: 30px;
+}
+
+#container:after {
+    clear: both;
+}
