@@ -15,8 +15,43 @@
 #output_container {
     float: left;
     margin-left: 30px;
+    position: relative;
+}
+
+#output_container #tooltip_layer {
+    position: absolute;
+    top: 0;
+    z-index: 1;
+}
+
+#output_container #tooltip_layer .tooltip_area {
+    display: inline-block;
+    position: relative;
+}
+
+#output_container #tooltip_layer .tooltip_content {
+    display: none;
+    border: 1px solid black;
+    background-color: #FFF;
+    padding: 5px;
+
+    position: absolute;
+    white-space: nowrap;
+}
+
+.palette {
+    display: inline-block;
+    margin-left: 10px;
+    white-space: nowrap;
+}
+
+.palette_color {
+    display: inline-block;
+    height: 30px;
+    width: 10px;
 }
 
 #container:after {
     clear: both;
 }
+

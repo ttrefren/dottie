@@ -24,20 +24,28 @@
     });
 
     var Dottie = Backbone.View.extend({
+
         initialize: function() {
             this.model = new DottieModel();
 
             var _this = this;
+
             $("#file_input").change(function() {
                 var reader = new FileReader();
                 reader.onload = function(e) {
                     var data_url = e.target.result;
-                    _data_url_to_pixels(data_url, function(pixels, width, height) {
+                    _data_url_to_pixels(data_url, function(imageData) {
+                        var px_arr = [];
+                        for (var i = 0; i < imageData.data.length; i += 4) {
+                            // ignore every 4th element, the opacity value
+                            px_arr.push([imageData.data[i], imageData.data[i + 1], imageData.data[i + 2]]);
+                        }
                         _this.model.set({
                             'image_url': data_url,
-                            'pixels': pixels,
-                            'width': width,
-                            'height': height
+                            'imageData': imageData,
+                            'pixels': px_arr,
+                            'width': imageData.width,
+                            'height': imageData.height
                         });
                     });
                 };
@@ -78,7 +86,10 @@
 
             this.model.on('change', this.render, this);
         },
+
         render: function() {
+            $("#tooltip_layer").html("");
+
             var canvas = document.getElementById('output'),
                 width = this.model.get('width'),
                 height = this.model.get('height');
@@ -95,12 +106,51 @@
             for (var y = 0; y < height; y += grid_size) {
                 for (var x = 0; x < width; x += grid_size) {
                     var px = this.model.get_pixels_at(x, y);
-                    var cmap = MMCQ.quantize(px, 5);
+                    var cmap = MMCQ.quantize(px, 3);
                     var palette = cmap.palette();
-                    context.fillStyle = "rgb(" + palette[0].join(",") + ")";
+                    this._render_tooltip(x, y, palette);
+
+                    context.fillStyle = _color_to_rgb_css(palette[0]);
                     context.fillRect(x, y, dot_size, dot_size);
                 }
             }
+        },
+
+        _render_tooltip: function(x, y, palette) {
+            var grid_size = this.model.get('grid_size');
+            var $click_catcher = $("<div class='tooltip_area'>").css({
+                height: grid_size, 
+                width: grid_size
+            });
+
+            var $tooltip = $("<div class='tooltip_content'>"),
+                $canvas = $("<canvas>", { height: grid_size, width: grid_size }),
+                ctx = $canvas[0].getContext('2d');
+
+            // Copy the original pixels into the tooltip for comparison
+            ctx.putImageData(this.model.get('imageData'), 0, 0, x, y, grid_size, grid_size);
+
+            var $palette = $("<div class='palette'>");
+            _.each(palette, function(color) {
+                $palette.append($("<div class='palette_color'>").css(
+                    'background-color', _color_to_rgb_css(color)
+                ));
+            });
+            
+            $("#tooltip_layer").append(
+                $click_catcher.append(
+                    $tooltip.append(
+                        $canvas,
+                        $palette
+                    )
+                )
+            );
+
+            $tooltip.css('left', $tooltip.width());
+
+            $click_catcher.click(function() {
+                $tooltip.toggle();
+            });
         }
     });
 
@@ -117,16 +167,13 @@
 
             ctx.drawImage(img, 0, 0);
             var img_data = ctx.getImageData(0, 0, canvas.width, canvas.height);
-            var px_arr = [];
-            for (var i = 0; i < img_data.data.length; i += 4) {
-                // ignore every 4th element, the opacity value
-                px_arr.push([img_data.data[i], img_data.data[i + 1], img_data.data[i + 2]]);
-            }
-            callback(px_arr, img_data.width, img_data.height);
+            callback(img_data);
         };
     };
 
-    var _get_pixels_at = function(x1, y1, x2, y2) {
+    var _color_to_rgb_css = function(pixel) {
+        return 'rgb(' + pixel.join(',') + ')';
     };
+
 
 })();
