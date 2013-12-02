@@ -146,7 +146,9 @@
                 )
             );
 
-            $tooltip.css('left', $tooltip.width());
+            $tooltip.css({
+                'left': -1 * $tooltip.width() / 2
+            });
 
             $click_catcher.click(function() {
                 $tooltip.toggle();
