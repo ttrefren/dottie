@@ -124,11 +124,13 @@
             });
 
             var $tooltip = $("<div class='tooltip_content'>"),
-                $canvas = $("<canvas>", { height: grid_size, width: grid_size }),
+                $canvas = $("<canvas>"),
                 ctx = $canvas[0].getContext('2d');
+            $canvas[0].width = grid_size;
+            $canvas[0].height = grid_size;
 
             // Copy the original pixels into the tooltip for comparison
-            ctx.putImageData(this.model.get('imageData'), 0, 0, x, y, grid_size, grid_size);
+            ctx.putImageData(this.model.get('imageData'), -x, -y, x, y, grid_size, grid_size);
 
             var $palette = $("<div class='palette'>");
             _.each(palette, function(color) {
@@ -147,7 +149,8 @@
             );
 
             $tooltip.css({
-                'left': -1 * $tooltip.width() / 2
+                'left': -1 * $tooltip.outerWidth() / 2 + grid_size / 2,
+                'top': -1 * grid_size
             });
 
             $click_catcher.click(function() {
