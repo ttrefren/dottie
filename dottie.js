@@ -20,9 +20,26 @@
         get_palette_at: function(x, y) {
             var key = [this.get('grid_size'), x, y].join(':');
             if (!(key in this._palette_cache)) {
-                var px = this.get_pixels_at(x, y);
-                var cmap = MMCQ.quantize(px, 8);
-                var palette = cmap.palette();
+                var pixels = this.get_pixels_at(x, y);
+                var cmap = MMCQ.quantize(pixels, 8);
+
+                var color_counts = {};
+                _.each(pixels, function(pixel) {
+                    var color = cmap.map(pixel);
+                    var key = color.join(':');
+                    color_counts[key] = color_counts[key] + 1 || 1;
+                });
+                console.log(x, y);
+                console.log(color_counts);
+                var palette = _.map(color_counts, function (val, key) {
+                    return [val, _.map(key.split(':'), function(n) { return parseInt(n) })];
+                });
+                palette = _.sortBy(palette, function(item) { return -1 * item[0] });
+                console.log('sorted');
+                console.log(palette);
+                palette = palette.map(function(tuple) { return tuple[1] });
+                console.log('mapped');
+                console.log(palette);
                 this._palette_cache[key] = palette;
             }
             return this._palette_cache[key];
@@ -115,7 +132,6 @@
 
             var context = canvas.getContext('2d');
             context.clearRect(0, 0, width, height);
-
 
             for (var y = 0; y < grid_height; y += grid_size) {
                 for (var x = 0; x < grid_width; x += grid_size) {
