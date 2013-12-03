@@ -19,7 +19,7 @@
         },
         defaults: {
             'dot_size': 30,
-            'grid_size': 30 
+            'grid_size': 30
         }
     });
 
@@ -92,21 +92,24 @@
 
             var canvas = document.getElementById('output'),
                 width = this.model.get('width'),
-                height = this.model.get('height');
+                height = this.model.get('height'),
+                grid_size = this.model.get('grid_size'),
+                dot_size = this.model.get('dot_size');
 
-            canvas.width = width;
-            canvas.height = height;
+            var grid_width = Math.round(width / grid_size) * grid_size,
+                grid_height = Math.round(height / grid_size) * grid_size;
+
+            canvas.width = grid_width;
+            canvas.height = grid_height;
 
             var context = canvas.getContext('2d');
             context.clearRect(0, 0, width, height);
 
-            var grid_size = this.model.get('grid_size'),
-                dot_size = this.model.get('dot_size');
 
-            for (var y = 0; y < height; y += grid_size) {
-                for (var x = 0; x < width; x += grid_size) {
+            for (var y = 0; y < grid_height; y += grid_size) {
+                for (var x = 0; x < grid_width; x += grid_size) {
                     var px = this.model.get_pixels_at(x, y);
-                    var cmap = MMCQ.quantize(px, 3);
+                    var cmap = MMCQ.quantize(px, 8);
                     var palette = cmap.palette();
                     this._render_tooltip(x, y, palette);
 
@@ -119,7 +122,7 @@
         _render_tooltip: function(x, y, palette) {
             var grid_size = this.model.get('grid_size');
             var $click_catcher = $("<div class='tooltip_area'>").css({
-                height: grid_size, 
+                height: grid_size,
                 width: grid_size
             });
 
@@ -138,7 +141,7 @@
                     'background-color', _color_to_rgb_css(color)
                 ));
             });
-            
+
             $("#tooltip_layer").append(
                 $click_catcher.append(
                     $tooltip.append(
