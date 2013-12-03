@@ -17,6 +17,17 @@
             }
             return subgrid_pixels;
         },
+        get_palette_at: function(x, y) {
+            var key = [this.get('grid_size'), x, y].join(':');
+            if (!(key in this._palette_cache)) {
+                var px = this.get_pixels_at(x, y);
+                var cmap = MMCQ.quantize(px, 8);
+                var palette = cmap.palette();
+                this._palette_cache[key] = palette;
+            }
+            return this._palette_cache[key];
+        },
+        _palette_cache: {},
         defaults: {
             'dot_size': 30,
             'grid_size': 30
@@ -108,9 +119,7 @@
 
             for (var y = 0; y < grid_height; y += grid_size) {
                 for (var x = 0; x < grid_width; x += grid_size) {
-                    var px = this.model.get_pixels_at(x, y);
-                    var cmap = MMCQ.quantize(px, 8);
-                    var palette = cmap.palette();
+                    var palette = this.model.get_palette_at(x, y);
                     this._render_tooltip(x, y, palette);
 
                     context.fillStyle = _color_to_rgb_css(palette[0]);
