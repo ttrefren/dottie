@@ -29,17 +29,11 @@
                     var key = color.join(':');
                     color_counts[key] = color_counts[key] + 1 || 1;
                 });
-                console.log(x, y);
-                console.log(color_counts);
                 var palette = _.map(color_counts, function (val, key) {
                     return [val, _.map(key.split(':'), function(n) { return parseInt(n) })];
                 });
                 palette = _.sortBy(palette, function(item) { return -1 * item[0] });
-                console.log('sorted');
-                console.log(palette);
                 palette = palette.map(function(tuple) { return tuple[1] });
-                console.log('mapped');
-                console.log(palette);
                 this._palette_cache[key] = palette;
             }
             return this._palette_cache[key];
@@ -171,7 +165,8 @@
                 $click_catcher.append(
                     $tooltip.append(
                         $canvas,
-                        $palette
+                        $palette,
+                        $("<span class='arrow'>")
                     )
                 )
             );
