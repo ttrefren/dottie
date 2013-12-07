@@ -9,8 +9,9 @@
                 pixels = this.get('pixels'),
                 width = this.get('width'),
                 grid_size = this.get('grid_size'),
+                first_x = x + y * width,
                 last_x = x + (y + grid_size) * width;
-            for (x; x <= last_x; x += width) {
+            for (x = first_x; x <= last_x; x += width) {
                 subgrid_pixels = subgrid_pixels.concat(
                     pixels.slice(x, x + grid_size)
                 );
@@ -18,7 +19,8 @@
             return subgrid_pixels;
         },
         get_palette_at: function(x, y) {
-            var key = [this.get('grid_size'), x, y].join(':');
+            var grid_size = this.get('grid_size');
+            var key = [grid_size, x, y].join(':');
             if (!(key in this._palette_cache)) {
                 var pixels = this.get_pixels_at(x, y);
                 var cmap = MMCQ.quantize(pixels, 8);
@@ -30,10 +32,11 @@
                     color_counts[key] = color_counts[key] + 1 || 1;
                 });
                 var palette = _.map(color_counts, function (val, key) {
-                    return [val, _.map(key.split(':'), function(n) { return parseInt(n) })];
+                    var color = _.map(key.split(':'), function(n) { return parseInt(n) });
+                    color.percent = val / Math.pow(grid_size, 2);
+                    return color;
                 });
-                palette = _.sortBy(palette, function(item) { return -1 * item[0] });
-                palette = palette.map(function(tuple) { return tuple[1] });
+                palette = _.sortBy(palette, function(color) { return -1 * color.percent });
                 this._palette_cache[key] = palette;
             }
             return this._palette_cache[key];
@@ -75,7 +78,7 @@
             });
 
             var dot_select = $("#dot_size");
-            var dot_sizes = _.range(10, 50, 5);
+            var dot_sizes = _.range(5, 100, 1);
             _.each(dot_sizes, function(size) {
                 var options = { value: size, text: size };
                 if (size == this.model.get('dot_size')) {
@@ -154,18 +157,29 @@
             // Copy the original pixels into the tooltip for comparison
             ctx.putImageData(this.model.get('imageData'), -x, -y, x, y, grid_size, grid_size);
 
-            var $palette = $("<div class='palette'>");
+            var $palette = $("<div class='palette'>"),
+                $palette_pct = $("<div class='palette_pct'>");
             _.each(palette, function(color) {
-                $palette.append($("<div class='palette_color'>").css(
-                    'background-color', _color_to_rgb_css(color)
-                ));
+                $palette.append(
+                    $("<div class='palette_color'>").css({
+                        'background-color': _color_to_rgb_css(color),
+                        'height': grid_size
+                    })
+                );
+                $palette_pct.append(
+                    $("<div class='palette_color_pct'>").text(parseInt(color.percent * 100, 10) + '%')
+                );
             });
 
             $("#tooltip_layer").append(
                 $click_catcher.append(
                     $tooltip.append(
+                        $("<span class='coords'>").text(x + ", " + y),
                         $canvas,
-                        $palette,
+                        $("<div class='palette_container'>").append(
+                            $palette,
+                            $palette_pct
+                        ),
                         $("<span class='arrow'>")
                     )
                 )
@@ -173,7 +187,7 @@
 
             $tooltip.css({
                 'left': -1 * $tooltip.outerWidth() / 2 + grid_size / 2,
-                'top': -1 * grid_size
+                'bottom': grid_size / 2
             });
 
             $click_catcher.click(function() {

@@ -1,5 +1,5 @@
 #input_container {
-    width: 200px;
+    //width: 200px;
     float: left;
 
     table td {
@@ -8,15 +8,16 @@
 
     #preview {
         margin-top: 15px;
-        width: 200px;
+        //width: 200px;
     }
 }
 
 
 #output_container {
     float: left;
-    margin-left: 30px;
     position: relative;
+    left: 30px;
+    top: 104px;
 
     #tooltip_layer {
         position: absolute;
@@ -33,23 +34,39 @@
             display: none;
             background-color: #FFF;
             border: 1px solid #000;
-            padding: 5px;
+            padding: 8px 5px;
 
             position: absolute;
             white-space: nowrap;
 
-            .palette {
+            .coords {
+                font-size: 9px;
+                font-family: monospace;
+                position: absolute;
+                top: 0;
+                right: 0;
+            }
+
+            .palette_container {
                 display: inline-block;
                 margin-left: 10px;
                 white-space: nowrap;
 
-                .palette_color {
-                    display: inline-block;
-                    height: 30px;
-                    width: 10px;
+                .palette {
+                    .palette_color {
+                        display: inline-block;
+                        width: 20px;
+                    }
+                }
+                .palette_pct {
+                    .palette_color_pct {
+                        font-size: 9px;
+                        display: inline-block;
+                        width: 20px;
+                        text-align: center;
+                    }
                 }
             }
-
 
             .arrow {
                 height: 6px;
