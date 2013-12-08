@@ -43,6 +43,7 @@
         },
         _palette_cache: {},
         defaults: {
+            'dot_shape': 'circle',
             'dot_size': 30,
             'grid_size': 30
         }
@@ -77,22 +78,34 @@
                 reader.readAsDataURL(this.files[0]);
             });
 
-            var dot_select = $("#dot_size");
+            var shape_select = $("#dot_shape");
+            _.each(['circle', 'square'], function(shape) {
+                var options = { value: shape, text: shape };
+                if (shape == this.model.get('dot_shape')) {
+                    options.selected = true;
+                }
+                shape_select.append($("<option>", options));
+            }, this);
+            shape_select.change(function() {
+                _this.model.set('dot_size', $(this).val());
+            });
+
+            var size_select = $("#dot_size");
             var dot_sizes = _.range(5, 100, 1);
             _.each(dot_sizes, function(size) {
                 var options = { value: size, text: size };
                 if (size == this.model.get('dot_size')) {
                     options.selected = true;
                 }
-                dot_select.append($("<option>", options));
+                size_select.append($("<option>", options));
             }, this);
-            dot_select.change(function() {
+            size_select.change(function() {
                 var val = parseInt($(this).val(), 10);
                 _this.model.set('dot_size', val);
             });
 
             var grid_select = $("#grid_size");
-            var grid_sizes = _.range(10, 100, 5);
+            var grid_sizes = _.range(5, 100);
             _.each(grid_sizes, function(size) {
                 var options = { value: size, text: size };
                 if (size == this.model.get('grid_size')) {
@@ -121,23 +134,49 @@
                 grid_size = this.model.get('grid_size'),
                 dot_size = this.model.get('dot_size');
 
+            var context = canvas.getContext('2d');
+            // clear before doing anything else, in case the image changed.
+            context.clearRect(0, 0, canvas.width, canvas.height);
+
             var grid_width = Math.round(width / grid_size) * grid_size,
                 grid_height = Math.round(height / grid_size) * grid_size;
 
             canvas.width = grid_width;
             canvas.height = grid_height;
 
-            var context = canvas.getContext('2d');
-            context.clearRect(0, 0, width, height);
-
             for (var y = 0; y < grid_height; y += grid_size) {
                 for (var x = 0; x < grid_width; x += grid_size) {
                     var palette = this.model.get_palette_at(x, y);
                     this._render_tooltip(x, y, palette);
-
-                    context.fillStyle = _color_to_rgb_css(palette[0]);
-                    context.fillRect(x, y, dot_size, dot_size);
+                    this._render_dot(context, x, y, palette[0]);
                 }
+            }
+        },
+
+        _render_dot: function(context, x, y, color) {
+            var grid_size = this.model.get('grid_size'),
+                dot_size = this.model.get('dot_size');
+            context.fillStyle = _color_to_rgb_css(color);
+            switch (this.model.get('dot_shape')) {
+                case 'circle':
+                    var center_x = x + grid_size / 2,
+                        center_y = y + grid_size / 2,
+                        radius = dot_size / 2,
+                        start_angle = 0,
+                        end_angle = 2 * Math.PI;
+                    context.beginPath();
+                    context.arc(center_x, center_y, radius, start_angle, end_angle);
+                    context.fill();
+                    context.closePath();
+                    break;
+                case 'square':
+                    // when the grid is bigger than the dot, we want to center
+                    // the dot within the grid.
+                    var padding = (grid_size - dot_size) / 2;
+                    context.fillRect(x + padding, y + padding, dot_size, dot_size);
+                    break;
+                default:
+                    throw 'invalid shape';
             }
         },
 
