@@ -28,6 +28,8 @@
                     <td>Show tooltips</td><td><input type="checkbox" id="show_tooltips"/></td>
                 </tr>
             </table>
+            <button id="save">Save image</button>
+            <br />
             <img id="preview" />
         </div>
         <div id="output_container">
@@ -41,6 +43,8 @@
 <script src="libs/quantize.js"></script>
 <script src="libs/underscore.js"></script>
 <script src="libs/backbone.js"></script>
+<script src="libs/base64.js"></script>
+<script src="libs/canvas2image.js"></script>
 <script src="dottie.js"></script>
 <script>
     $(document).ready(function() {

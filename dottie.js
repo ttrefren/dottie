@@ -3,26 +3,6 @@
         new Dottie();
     };
 
-    var Timer = function() {
-        this._total_time = 0;
-    };
-    Timer.prototype.time = function(fn, args, context) {
-        var start = new Date,
-            output = fn.apply(context, args),
-            end = new Date;
-        this._total_time += (end - start);
-        return output;
-    };
-    Timer.prototype.start = function() {
-        this._start_time = new Date;
-    };
-    Timer.prototype.end = function() {
-        this._total_time = (new Date - this._start_time);
-    };
-    Timer.prototype.get = function() {
-        return this._total_time / 1000;
-    };
-
     var DottieModel = Backbone.Model.extend({
         get_pixels_at: function(x, y) {
             // get pixels for grid section starting at x, y
@@ -176,6 +156,10 @@
                 } else {
                     _this.model.set('show_tooltips', false);
                 }
+            });
+
+            $("#save").on('click', function() {
+                Canvas2Image.saveAsPNG(document.getElementById('output'));
             });
 
             this.model.on('change:image_url', function() {
@@ -342,5 +326,24 @@
         return 'rgb(' + pixel.join(',') + ')';
     };
 
+    var Timer = function() {
+        this._total_time = 0;
+    };
+    Timer.prototype.time = function(fn, args, context) {
+        var start = new Date,
+            output = fn.apply(context, args),
+            end = new Date;
+        this._total_time += (end - start);
+        return output;
+    };
+    Timer.prototype.start = function() {
+        this._start_time = new Date;
+    };
+    Timer.prototype.end = function() {
+        this._total_time = (new Date - this._start_time);
+    };
+    Timer.prototype.get = function() {
+        return this._total_time / 1000;
+    };
 
 })();
