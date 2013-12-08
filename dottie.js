@@ -1,4 +1,4 @@
-(function() {
+;(function() {
     window.bootstrap = function() {
         new Dottie();
     };
@@ -66,13 +66,29 @@
         clear_palette_cache: function() {
             this._palette_cache = {};
         },
-        _palette_cache: {},
+        get_scaled_sizes: function() {
+            var multiplier = 1.0,
+                output_width = this.get('output_width'),
+                input_width = this.get('width');
+
+            if (output_width) {
+                multiplier = output_width / input_width;
+            }
+            return {
+                'dot_size': this.get('dot_size') * multiplier,
+                'grid_size': this.get('grid_size') * multiplier,
+                'width': input_width * multiplier,
+                'height': this.get('height') * multiplier
+            }
+        },
         defaults: {
             'dot_shape': 'circle',
             'dot_size': 30,
             'grid_size': 30,
+            'output_width': null,
             'show_tooltips': false
-        }
+        },
+        _palette_cache: {},
     });
 
     var Dottie = Backbone.View.extend({
@@ -118,7 +134,7 @@
             });
 
             var size_select = $("#dot_size");
-            var dot_sizes = _.range(5, 100, 1);
+            var dot_sizes = _.range(2, 100);
             _.each(dot_sizes, function(size) {
                 var options = { value: size, text: size };
                 if (size == this.model.get('dot_size')) {
@@ -132,7 +148,7 @@
             });
 
             var grid_select = $("#grid_size");
-            var grid_sizes = _.range(5, 100);
+            var grid_sizes = _.range(2, 100);
             _.each(grid_sizes, function(size) {
                 var options = { value: size, text: size };
                 if (size == this.model.get('grid_size')) {
@@ -145,16 +161,20 @@
                 _this.model.set('grid_size', val);
             });
 
+            var output_width = $("#output_width");
+            output_width.on('input', _.debounce(function() {
+                _this.model.set('output_width', $(this).val());
+            }, 350));
+
             var show_tooltips = $("#show_tooltips");
             if (this.model.get('show_tooltips')) {
                 show_tooltips.attr('checked', 'checked');
             }
-            var model = this.model;
             show_tooltips.on('click', function() {
                 if ($(this).is(':checked')) {
-                    model.set('show_tooltips', true);
+                    _this.model.set('show_tooltips', true);
                 } else {
-                    model.set('show_tooltips', false);
+                    _this.model.set('show_tooltips', false);
                 }
             });
 
@@ -175,28 +195,32 @@
             $("#tooltip_layer").html("");
 
             var canvas = document.getElementById('output'),
-                width = this.model.get('width'),
-                height = this.model.get('height'),
-                grid_size = this.model.get('grid_size'),
-                dot_size = this.model.get('dot_size');
-
-            var context = canvas.getContext('2d');
-            // clear before doing anything else, in case the image changed.
+                context = canvas.getContext('2d');
+            // clear before doing anything else, in case the image size changed.
             context.clearRect(0, 0, canvas.width, canvas.height);
 
-            var grid_width = Math.round(width / grid_size) * grid_size,
-                grid_height = Math.round(height / grid_size) * grid_size;
+            // dots/grid scale when we change the output size
+            var scaled_sizes = this.model.get_scaled_sizes();
 
-            canvas.width = grid_width;
-            canvas.height = grid_height;
+            var grid_count_x = Math.round(scaled_sizes.width / scaled_sizes.grid_size),
+                grid_count_y = Math.round(scaled_sizes.height / scaled_sizes.grid_size);
 
-            for (var y = 0; y < grid_height; y += grid_size) {
-                for (var x = 0; x < grid_width; x += grid_size) {
-                    var palette = palette_timer.time(this.model.get_palette_at, [x, y], this.model);
+            canvas.width = grid_count_x * scaled_sizes.grid_size;
+            canvas.height = grid_count_y * scaled_sizes.grid_size;
+
+            for (var grid_y = 0; grid_y < grid_count_y; grid_y++) {
+                for (var grid_x = 0; grid_x < grid_count_x; grid_x++) {
+                    // input x, y is not scaled
+                    var input_x = grid_x * this.model.get('grid_size'),
+                        input_y = grid_y * this.model.get('grid_size');
+                    var palette = palette_timer.time(this.model.get_palette_at, [input_x, input_y], this.model);
                     if (this.model.get('show_tooltips')) {
-                        tooltip_timer.time(this._render_tooltip, [x, y, palette], this);
+                        tooltip_timer.time(this._render_tooltip, [input_x, input_y, palette], this);
                     }
-                    dot_timer.time(this._render_dot, [context, x, y, palette[0]], this);
+                    // output x, y is scaled
+                    var output_x = grid_x * scaled_sizes.grid_size,
+                        output_y = grid_y * scaled_sizes.grid_size;
+                    dot_timer.time(this._render_dot, [context, output_x, output_y, palette[0]], this);
                 }
             }
             render_timer.end();
@@ -207,8 +231,9 @@
         },
 
         _render_dot: function(context, x, y, color) {
-            var grid_size = this.model.get('grid_size'),
-                dot_size = this.model.get('dot_size');
+            var scaled_sizes = this.model.get_scaled_sizes();
+            var grid_size = scaled_sizes.grid_size,
+                dot_size = scaled_sizes.dot_size;
             context.fillStyle = _color_to_rgb_css(color);
             switch (this.model.get('dot_shape')) {
                 case 'circle':
@@ -233,21 +258,28 @@
             }
         },
 
-        _render_tooltip: function(x, y, palette) {
-            var grid_size = this.model.get('grid_size');
+        _render_tooltip: function(input_x, input_y, palette) {
+            var scaled_sizes = this.model.get_scaled_sizes();
             var $click_catcher = $("<div class='tooltip_area'>").css({
-                height: grid_size,
-                width: grid_size
+                height: scaled_sizes.grid_size,
+                width: scaled_sizes.grid_size
             });
 
             var $tooltip = $("<div class='tooltip_content'>"),
                 $canvas = $("<canvas>"),
                 ctx = $canvas[0].getContext('2d');
-            $canvas[0].width = grid_size;
-            $canvas[0].height = grid_size;
+
+            var unscaled_grid_size = this.model.get('grid_size');
+            $canvas[0].width = unscaled_grid_size;
+            $canvas[0].height = unscaled_grid_size;
 
             // Copy the original pixels into the tooltip for comparison
-            ctx.putImageData(this.model.get('imageData'), -x, -y, x, y, grid_size, grid_size);
+            ctx.putImageData(
+                this.model.get('imageData'),
+                -input_x, -input_y,
+                input_x, input_y,
+                unscaled_grid_size, unscaled_grid_size
+            );
 
             var $palette = $("<div class='palette'>"),
                 $palette_pct = $("<div class='palette_pct'>");
@@ -255,7 +287,7 @@
                 $palette.append(
                     $("<div class='palette_color'>").css({
                         'background-color': _color_to_rgb_css(color),
-                        'height': grid_size
+                        'height': unscaled_grid_size
                     })
                 );
                 $palette_pct.append(
@@ -266,7 +298,7 @@
             $("#tooltip_layer").append(
                 $click_catcher.append(
                     $tooltip.append(
-                        $("<span class='coords'>").text(x + ", " + y),
+                        $("<span class='coords'>").text(input_x + ", " + input_y),
                         $canvas,
                         $("<div class='palette_container'>").append(
                             $palette,
@@ -277,9 +309,10 @@
                 )
             );
 
+            // position it after it is filled with content
             $tooltip.css({
-                'left': -1 * $tooltip.outerWidth() / 2 + grid_size / 2,
-                'bottom': grid_size / 2
+                'left': -1 * $tooltip.outerWidth() / 2 + scaled_sizes.grid_size / 2,
+                'bottom': scaled_sizes.grid_size / 2
             });
 
             $click_catcher.click(function() {
