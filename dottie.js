@@ -3,8 +3,29 @@
         new Dottie();
     };
 
+    var Timer = function() {
+        this._total_time = 0;
+    };
+    Timer.prototype.time = function(fn, args, context) {
+        var start = new Date,
+            output = fn.apply(context, args),
+            end = new Date;
+        this._total_time += (end - start);
+        return output;
+    };
+    Timer.prototype.start = function() {
+        this._start_time = new Date;
+    };
+    Timer.prototype.end = function() {
+        this._total_time = (new Date - this._start_time);
+    };
+    Timer.prototype.get = function() {
+        return this._total_time / 1000;
+    };
+
     var DottieModel = Backbone.Model.extend({
         get_pixels_at: function(x, y) {
+            // get pixels for grid section starting at x, y
             var subgrid_pixels = [],
                 pixels = this.get('pixels'),
                 width = this.get('width'),
@@ -19,6 +40,7 @@
             return subgrid_pixels;
         },
         get_palette_at: function(x, y) {
+            // get palette for grid section starting at x, y
             var grid_size = this.get('grid_size');
             var key = [grid_size, x, y].join(':');
             if (!(key in this._palette_cache)) {
@@ -41,11 +63,15 @@
             }
             return this._palette_cache[key];
         },
+        clear_palette_cache: function() {
+            this._palette_cache = {};
+        },
         _palette_cache: {},
         defaults: {
             'dot_shape': 'circle',
             'dot_size': 30,
-            'grid_size': 30
+            'grid_size': 30,
+            'show_tooltips': false
         }
     });
 
@@ -66,6 +92,7 @@
                             // ignore every 4th element, the opacity value
                             px_arr.push([imageData.data[i], imageData.data[i + 1], imageData.data[i + 2]]);
                         }
+                        _this.model.clear_palette_cache();
                         _this.model.set({
                             'image_url': data_url,
                             'imageData': imageData,
@@ -118,6 +145,19 @@
                 _this.model.set('grid_size', val);
             });
 
+            var show_tooltips = $("#show_tooltips");
+            if (this.model.get('show_tooltips')) {
+                show_tooltips.attr('checked', 'checked');
+            }
+            var model = this.model;
+            show_tooltips.on('click', function() {
+                if ($(this).is(':checked')) {
+                    model.set('show_tooltips', true);
+                } else {
+                    model.set('show_tooltips', false);
+                }
+            });
+
             this.model.on('change:image_url', function() {
                 $("#preview").attr("src", this.model.get('image_url'));
             }, this);
@@ -126,6 +166,12 @@
         },
 
         render: function() {
+            var render_timer = new Timer(),
+                palette_timer = new Timer(),
+                tooltip_timer = new Timer(),
+                dot_timer = new Timer();
+            render_timer.start();
+
             $("#tooltip_layer").html("");
 
             var canvas = document.getElementById('output'),
@@ -146,11 +192,18 @@
 
             for (var y = 0; y < grid_height; y += grid_size) {
                 for (var x = 0; x < grid_width; x += grid_size) {
-                    var palette = this.model.get_palette_at(x, y);
-                    this._render_tooltip(x, y, palette);
-                    this._render_dot(context, x, y, palette[0]);
+                    var palette = palette_timer.time(this.model.get_palette_at, [x, y], this.model);
+                    if (this.model.get('show_tooltips')) {
+                        tooltip_timer.time(this._render_tooltip, [x, y, palette], this);
+                    }
+                    dot_timer.time(this._render_dot, [context, x, y, palette[0]], this);
                 }
             }
+            render_timer.end();
+            console.info('rendering image took', render_timer.get(), 'seconds');
+            console.info('  palette:', palette_timer.get(), 'seconds');
+            console.info('  tooltip:', tooltip_timer.get(), 'seconds');
+            console.info('  dots:', dot_timer.get(), 'seconds');
         },
 
         _render_dot: function(context, x, y, color) {
